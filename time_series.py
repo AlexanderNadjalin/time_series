@@ -68,14 +68,16 @@ class Time_series:
         else:
             logger.success('Time series data set with fields: ' + str(self.data_fields) + '.')
 
+    @logger.catch
     def stats_add_relative_strength_index(self, window: int = 14, technique: str = 'SMA') -> None:
         """
-        Calculates RSI (Relative Strength Index) with either SMA or EWMA ("SMA" for
-        Simple Moving Average or "EWMA" for Exponential Moving Average).
+        Calculate RSI (Relative Strength Index) with either SMA or EWMA ("SMA" for
+        Simple Moving Average or "EWMA" for Exponential Moving Average) for all given field names.
         :param window: int: Period for the RSI.
         :param technique: str: Options are "SMA" or EWMA".
         :return: pandas.DataFrame.
         """
+        df = self.data.copy()
         for field in self.data_fields:
             deltas = self.data[field].diff()
             deltas = deltas[1:]
@@ -88,16 +90,20 @@ class Time_series:
                 roll_down = d_down.ewm(span=window, freq='D').mean()
                 rs = roll_up / roll_down.abs()
                 rsi = 100.0 - (100.0 / (1.0 + rs))
-                self.data[field + '_RSA_EWMA_' + str(window)] = rsi
+                col_str = field + '_RSI_EWMA(' + str(window) + ')'
+                df[col_str] = rsi
             elif technique == 'SMA':
                 roll_up = d_up.rolling(window).mean()
                 roll_down = d_down.rolling(window).mean()
                 rs = roll_up / roll_down.abs()
                 rsi = 100.0 - (100.0 / (1.0 + rs))
-                self.data[field + '_RSI_SWA_' + str(window)] = rsi
+                col_str = field + '_RSI_SWA(' + str(window) + ')'
+                df[col_str] = rsi
             else:
                 logger.critical('Function was passed "' + technique +
                                 '" as parameter. Needs to be either "EWMA" or "SMA". Aborted.')
                 quit()
 
-        self.data.dropna(inplace=True)
+            df.dropna(inplace=True)
+        self.data = df
+        logger.success('Relative Strength Index column(s) added.')
