@@ -1,13 +1,14 @@
-from time_series import Time_series
+import time_series.time_series as ts
 from loguru import logger
 
 
 def main():
-    ts = Time_series(name='PLTR')
-    ts.io_read_raw('PLTR.csv')
-    ts.data_set_fields(['Adj Close'])
-    ts.stats_add_relative_strength_index(window=14)
-    print(ts.data)
+    series = ts.Time_series(name='PLTR')
+    series.io_read_raw('PLTR.csv')
+    series.set_fields(['Adj_Close'])
+    series.returns(fields=['Adj_Close'])
+    # ts.stats.add_relative_strength_index(fields='Adj_Close_rets', window=14)
+
     logger.info('Done.')
 
 
