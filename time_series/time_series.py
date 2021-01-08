@@ -12,11 +12,11 @@ class Time_series:
         self.source = source
         self.raw_data = None
         self.data = None
-        self.all_fields = []
+        self.raw_fields = []
         self.data_fields = []
 
     @logger.catch
-    def io_read_raw(self, input_file_name: str):
+    def read_raw(self, input_file_name: str):
         """
 
         Read config.ini file. Read specified input .csv file.
@@ -25,7 +25,6 @@ class Time_series:
         """
         conf = cp.ConfigParser()
         conf.read('config.ini')
-        logger.info('')
         logger.success('I/O info read from config.ini file.')
 
         input_file_directory = Path(conf['input_data']['input_file_directory'])
@@ -34,13 +33,14 @@ class Time_series:
         if self.file_valid(input_file_path):
             try:
                 self.raw_data = pd.read_csv(input_file_path, sep=',', index_col='Date', parse_dates=True)
-            except ValueError:
-                logger.error('Value error. Check file format (date column name). Aborted.')
+            except ValueError as e:
+                logger.error('File read failed with the following exception:')
+                logger.error('   ' + str(e))
+                logger.info('Aborted.')
                 quit()
             else:
-                self.raw_data.columns = self.raw_data.columns.str.replace(' ', '_')
                 for col in self.raw_data:
-                    self.all_fields.append(col)
+                    self.raw_fields.append(col)
                 logger.success('Data file "' + input_file_name + '" read.')
 
     @logger.catch
@@ -54,27 +54,64 @@ class Time_series:
         if file_path.exists():
             return True
         else:
-            logger.info('')
             logger.critical('File directory or file name is incorrect. Aborted')
             quit()
 
     @logger.catch()
-    def set_fields(self, fields: list):
-        self.data_fields = fields
+    def set_fields(self, fields: list) -> None:
+        """
+
+        Copy data from self.raw_data (imported data) to self.data (data to be used in Time_series object).
+        :param fields: List of column names from the imported data.
+        :return: None.
+        """
         logger.info('')
         try:
-            self.data = self.raw_data[self.data_fields]
-        except KeyError as message:
-            logger.error(str(message) + '. Aborted.')
+            self.data = self.raw_data[fields]
+        except KeyError as e:
+            logger.error('Field set failed with exception:')
+            logger.error('   ' + str(e))
+            logger.info('Aborted.')
             quit()
         else:
+            self.data.index.name = 'Date'
+            self.data['Date'] = self.data.index.values
+            self.data.columns = self.data.columns.str.replace(' ', '_')
+            self.data_fields = self.data.columns.to_list()
             logger.success('Time series data set with fields: ' + str(self.data_fields) + '.')
+
+    def returns_dates(self, column_name: list) -> pd.DataFrame:
+        """
+
+        Get daily returns and dates from specified column.
+        :return: pd.DataFrame.
+        """
+        df1 = self.data
+        df1['Date'] = df1.index
+
+        for f in column_name:
+            if f in self.data_fields:
+                df1 = pd.concat([df1['Date'], df1[f]], axis=1)
+            else:
+                logger.critical('Column "' + f + '" does not exist in Time_series ' + self.name + '.')
+                logger.critical('Aborted.')
+                quit()
+        df1.fillna(0, inplace=True)
+        df1.set_index('Date', inplace=True)
+        return df1
 
     @logger.catch()
     def returns(self, fields, ret_type=None):
+        """
+
+        Add daily returns column for specified column names.
+        Choice of log or regular returns.
+        :param fields: List of column names.
+        :param ret_type: "log" if logged returns.
+        :return: None.
+        """
         df = self.data.copy()
         for f in fields:
-            fld_str = ''
             if ret_type == 'log':
                 fld_str = f + '_log_rets'
                 df[fld_str] = np.log(df[f]).diff()

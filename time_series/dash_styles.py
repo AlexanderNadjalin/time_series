@@ -1,54 +1,5 @@
 import plotly.graph_objs as go
-import dash_core_components as dcc
-import datetime as dt
 from loguru import logger
-
-
-@logger.catch
-def hist_graph(ts_collection: ts_col.TimeSeriesCollection, column_name: str = 'Adj Close'):
-    """
-    Dash Core Component Graph for historical prices.
-    :param ts_collection: ts_col.TimeSeriesCollection
-    :param column_name: str. default='Adj Close'
-    :return: dcc.Graph
-    """
-    start = ts_collection.common_end_date() - dt.timedelta(days=252)
-    end = ts_collection.common_end_date()
-    ts = ts_collection.ts_list[0].ticker
-    time_series = ts_collection.get_time_series(ts)
-    df = time_series.select_ts_dates(start, end)
-    return dcc.Graph(
-        id='hist_graph',
-        figure={
-            'data': [
-                {'x': df['Date'], 'y': df[column_name]}
-            ]
-        },
-        style={'width': '800'}
-    )
-
-
-@logger.catch
-def returns_graph(ts_collection: ts_col.TimeSeriesCollection):
-    """
-    Dash Core Component Graph for historical returns.
-    :param ts_collection: ts_col.TimeSeriesCollection
-    :return: dcc.Graph
-    """
-    start = ts_collection.common_end_date() - dt.timedelta(days=252)
-    end = ts_collection.common_end_date()
-    ts = ts_collection.ts_list[0].ticker
-    time_series = ts_collection.get_time_series(ts)
-    df = time_series.cumulative_returns(start, end)
-    return dcc.Graph(
-        id='returns_graph',
-        figure={
-            'data': [
-                {'x': df['Date'], 'y': df['cum_rets']}
-            ]
-        },
-        style={'width': '800'}
-    )
 
 
 @logger.catch
