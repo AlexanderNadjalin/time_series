@@ -5,9 +5,12 @@ import pandas as pd
 
 class TimeSeries:
     def __init__(self,
-                 input_file: Files):
-        self.input_file = input_file
+                 file: Files):
+        self.file = file
+        logger.info("Creating TimeSeries object for file " + self.file.file_name + ".")
+
+        self.column_names = self.file.raw_data.columns
+        self.data = self.file.raw_data.copy()
 
         logger.success('TimeSeries object created.')
-
 
