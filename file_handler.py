@@ -26,13 +26,13 @@ class Files:
 
     def read_config(self):
         """
-        Read config.cfg file and return a config object. Used to set default parameters for file objects.
+        Read file_handler_config.cfg file and return a config object. Used to set default parameters for file objects.
         :return: A ConfigParser object.
         """
         conf = cp.ConfigParser()
-        conf.read('config.ini')
+        conf.read('file_handler_config.ini')
 
-        logger.info('Info read from config.ini file.')
+        logger.info('Info read from file_handler_config.ini file.')
 
         self.config = conf
 
